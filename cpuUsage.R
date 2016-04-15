@@ -19,9 +19,7 @@ nproc <- length(procs)
 
 # record capture time
 times <- unique(mydata$timestamp)
-
-# create newdata to record each process cpu usage on each capture time
-newdata <- data.frame(timestamp=times)
+ntime <- length(times)
 
 # sort process by cpu usage
 ratios <- NULL
@@ -32,31 +30,16 @@ for (i in 1:nproc) {
 procdata <- data.frame( process=procs, ratio=ratios)
 procdata <- procdata[order(procdata$ratio, decreasing=TRUE),]
 procs <- procdata$process
-
-# fill 0 usage for capture time's missing percentage
-for (k in 1:length(procs)) {
-    j <- 1
-    s <- NULL
-    for (i in 1:length(times)) {
-        comtime = mydata[mydata$process==procs[k], 1][j]
-        if (!is.na(comtime) && times[i]==comtime) {
-            s = append(s, mydata[mydata$process==procs[k], 3][j])
-            j=j+1
-        } else {
-            s = append(s, 0)
-        }
-    }
-    newdata[as.character(procs[k])] <- s
-}
+printline <- 20
 
 # denote x,y range in graph
 xrange <- range(mydata$timestamp)
 yrange <- range(mydata$percentage)
 
 # allocate color linetype and plotchar
-colors <- rev(rainbow(nproc))
-linetype <- c(1:nproc)
-plotchar <- c(1:nproc)
+colors <- rev(rainbow(printline))
+linetype <- c(1:printline)
+plotchar <- c(1:printline)
 
 # open jpg file to record the plot
 jpgname <- sub("csv", "jpg", args)
@@ -72,13 +55,20 @@ layout(matrix(c(1,2), nrow=2), heights=c(3,1))
 plot(xrange, yrange, type="n", main="CPU Usage/Timestamp", xlab="timestamp", ylab="percentage", xaxt="n")
 axis(side=1, at=ts(times), labels=format(times, format="%H:%M:%S"))
 
-# denote the print line
-printline <- 20
-
 # print each line
+s <- NULL
 for (i in 1:printline) {
-    lines(newdata$timestamp, newdata[,procs[i]],
-        type="b", lty=linetype[i], col=colors[i], pch=plotchar[i])
+    s[1:ntime] <- 0
+    j <- 1
+    for (k in 1:ntime) {
+        comtime = mydata[mydata$process==procs[i], 1][j]
+        if (!is.na(comtime) && times[k]==comtime) {
+            s[k] <- mydata[mydata$process==procs[i], 3][j]
+            j=j+1
+        }
+    }
+
+    lines(times, s, type="b", lty=linetype[i], col=colors[i], pch=plotchar[i])
 }
 
 # margin setup
